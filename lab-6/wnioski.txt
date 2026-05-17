@@ -1,0 +1,22 @@
+wnioski jakie mam względem tego zadania głównie dotyczą wersji (15,11)
+
+z tego co rozumiem, ze względu na to nasz wektor wyjściowy nie jest poukładany bitami po kolei tak jak (7,4) czyli jak tam było x1,x2,x3,x4,x5,x6,x7
+
+to tutaj w (15,11) najpierw mamy
+
+bity parzystości, a potem po kolei pozostałe 11 bitów
+
+z tej własności, narodziły się pewne problemy ponieważ detekcja błędu była bardziej skomplikowana niż poprzednio. Licząc wektor s na podstaiwe macierzy c i H^T, i liczenia syndrom otrzymywalismy numer, numer który mówił nam jaki x został zanegowany we wprowadzonym wektorze do dekodera
+
+Przez to że cały wektor wejściowy jest poukładany nie po kolei, ciężko mi było jakoś ładnie w pętli dokonywać korekcji bitu, ponieważ nie potrafiłem opisać w kodzie zależności między syndromem, a zanegowanym bitem
+
+np kiedy syndrom wychodzi 8, czyli znaczy że x8 został zanegowany
+to w wejściowym wektorze x3 jest na miejscu 3 (licząc od 0) a np jak mamy x5, to już będzie to po prostu miejsce 5, a a jak 12 to bedzie miejsce 13
+
+Ciekawą rzeczą dotycząca samej detekcji jest fakt, że poprzez działania macierzowe, program sam może wykryć faktycznie że bit został zmieniony względem wektora którego nawet ten program przecież nie widział
+
+
+Inne wnioski:
+
+tworząc macierz P, tworzymy ją jakby na wzór innych danych, tych które są w pdfie. Stworzyłem z tych danych po prostu drugą macierz bo nie wiedziałem jak to opisać w kodzie żeby stworzyło sie w pętli. Te dane w pdfie przypominały mi tablice prawdy dla 3 zmiennych, ale bez pierwszego wiersza 
+

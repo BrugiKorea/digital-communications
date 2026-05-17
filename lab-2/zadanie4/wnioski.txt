@@ -1,0 +1,23 @@
+do obliczania czasu użyłem bilbioteki chrono
+td = 5
+fs = 1000
+
+funkcja     DFT         FFT 
+   x     0.469864s   0.0002035s
+   y     0.477773s   8.84e-05s
+   z     0.473874s   5.41e-05s
+   v     0.480082s   0.0002058s
+   u     0.468372s   0.0001869s
+   b1    0.472105s   0.0001622s
+   b2    0.476721s   0.000143s
+   b3    0.476381s   0.0001957s
+
+
+implementacja FFT której użyłem do porównań brałem stąd:
+
+https://www.oreilly.com/library/view/c-cookbook/0596007612/ch11s18.html
+
+
+wnioski:
+FFT jest o wiele szybsze od DFT, a o dziwo w przypadku DFT mimo używnaia różnych funkcji do obliczania wartości x(n) pomiary są bardzo podobne.
+

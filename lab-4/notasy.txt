@@ -1,0 +1,210 @@
+#include <iostream>
+#include "matplotlibcpp.h"
+#include <vector>
+#include <cmath>
+#include <cstdlib> 
+#include <ctime>   
+#include <string>
+#include <cstring> 
+
+namespace plt = matplotlibcpp;
+double PI = 3.14159;
+
+
+void ASK(double A1, double A2, double fn, double t, double M, std::vector<double>& out, int n) {
+
+    if (n == 0) {
+        for (int m = 0; m < M; m++) {
+            out.push_back(A1 * sin(2 * PI * fn * t));
+        }
+
+    }
+
+    else {
+        for (int m = 0; m < M; m++) {
+            out.push_back(A2 * sin(2 * PI * fn * t));
+        }
+
+    }
+
+
+}
+double PSK(double fn, double m, double t, double kp) {
+    double zp = cos(2 * PI * fn * t + kp * m);
+    return zp;
+}
+double FSK(double fn, double t, double fm, double m, double kf) {
+    double zf = cos(2 * PI * fn * t + kf / fm * m);
+    return zf;
+}
+
+
+
+int main() {
+
+    std::vector<double> N_values;
+    std::vector<double> N_values2;
+    std::vector<double> N_values3;
+    std::vector<double> fk_values;
+    std::vector<double> tab_re;
+    std::vector<double> tab_im;
+    std::vector<double> y_values;
+    std::vector<double> z_values;
+    std::vector<double> M_value;
+    std::vector<double> out;
+    std::vector<double> out2;
+    std::vector<double> out3;
+    double Tc = 3.0;
+    double fs = 1000;
+    double N = Tc * fs;
+    double t;
+    double Ka = 0.96;
+    double fm = 200;
+    double W = 2;
+    double kp = 9.452;
+    double kf = 0.52;
+    double A1 = 1;
+    double A2 = 2;
+    double Tb = Tc / 10;
+    double M = Tb * fs;
+    double fn = W * pow(Tb, -1);
+    double fn1 = W + 1 / Tb;
+    double fn2 = W + 2 / Tb;
+    int bit = 0;
+    int bity[10] = { 1,0,1,0,1,1,0,1,0,1 };
+
+    for (int n = 0; n < 10; n++) {
+
+        if (bity[n] == 0) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(A1 * sin(2 * PI * fn * t));
+
+            }
+
+        }
+        else {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(A2 * sin(2 * PI * fn * t));
+            }
+
+        }
+    }
+    for (int n = 0; n < 10; n++) {
+        if (bity[n] == 0) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values2.push_back(t);
+                out2.push_back(sin(2 * PI * fn * t));
+            }
+        }
+        if (bity[n] == 1) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values2.push_back(t);
+                out2.push_back(sin(2 * PI * fn * t + PI));
+            }
+        }
+    }
+    for (int n = 0; n < 10; n++) {
+        if (bity[n] == 0) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values3.push_back(t);
+                out3.push_back(sin(2 * PI * fn1 * t));
+            }
+        }
+        if (bity[n] == 1) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values3.push_back(t);
+                out3.push_back(sin(2 * PI * fn2 * t));
+            }
+        }
+    }
+
+    plt::figure();
+    plt::plot(N_values, out3, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("sygnal z(a)_a");
+    plt::show();
+
+    double a, b;
+    double fk;
+
+    for (int k = 0; k < N; k++) {
+        a = 0;
+        b = 0;
+        for (int n = 0; n < N; n++) {
+            a += out3[n] * cos(-1 * (2 * PI * k * n / N));
+            b += out3[n] * sin(-1 * (2 * PI * k * n / N));
+        }
+        tab_re.push_back(a);
+        tab_im.push_back(b);
+    }
+
+    for (double k = 0; k <= N / 2 - 1; k++) {
+        M = sqrt(pow(tab_re[k], 2) + pow(tab_im[k], 2));
+        M_value.push_back(10 * log10(M));
+        fk = k * fs / N;
+        fk_values.push_back(fk);
+    }
+    double max = M_value[0];
+    for (double k = 0; k < N / 2 - 1; k++) {
+        if (M_value[k] > max) {
+            max = M_value[k];
+        }
+    }
+
+
+    //std::cout << "max: " << max << std::endl;
+
+
+    /*std::vector<double> M_value_z;
+    std::vector<double> fk_values_z;
+    std::vector<double> kreska;
+   double limit_left = 200;
+   double limit_right = 300;
+
+    for (double i = 0; i < fk_values.size(); i++) {
+        if (fk_values[i] >= limit_left && fk_values[i] <= limit_right) {
+            M_value_z.push_back(M_value[i]);
+            fk_values_z.push_back(fk_values[i]);
+            kreska.push_back(max- 3);
+        }
+    }
+    int left_index = -1;
+    for (double i = 0; i < fk_values_z.size(); ++i) {
+        if (M_value_z[i] >= max - 3) {
+            left_index = i;
+            break;
+        }
+    }
+    int right_index = -1;
+    for (double i = fk_values_z.size() - 1; i >= 0; --i) {
+        if (M_value_z[i] >= max - 3) {
+            right_index = i;
+            break;
+        }
+    }
+    */
+    // std::cout << "left : " << fk_values_z[left_index] << std::endl;
+     //std::cout << "right : " <<fk_values_z[right_index] << std::endl;
+    // double width = fk_values_z[right_index] - fk_values_z[left_index];
+     //std::cout << "szerokosc pasma: " << width << std::endl;
+     //plt::plot(fk_values, M_value, "b-");
+    plt::plot(fk_values, M_value, "b-");
+    //plt::plot(fk_values_z, kreska, "g-");
+    //std::cout << "Liczby w wektorze:" << std::endl;
+   // std::cout << fk_values[1];
+    plt::xlabel("f(k)");
+    plt::ylabel("M'(k)");
+    plt::title("widmo z(p)_c");
+    plt::show();
+
+    return 0;
+}

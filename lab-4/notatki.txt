@@ -1,0 +1,8 @@
+tc np 1 sekunda
+
+tb = to tc / liczba bitow
+
+fn = n * 1/tb
+
+robimy petle z globalnym indeksem i dla pierwszego bita w zaleznosci od tego jaki jest
+to wtedy robimy druga petla ktora leci od 0 do liczby probek liczy Tb * tcsss

@@ -1,0 +1,996 @@
+#include <iostream>
+#include "matplotlibcpp.h"
+#include <vector>
+#include <cmath>
+#include <cstdlib> 
+#include <ctime>   
+#include <string>
+#include <cstring> 
+#include "kiss_fft.h"
+
+
+namespace plt = matplotlibcpp;
+double PI = 3.14159;
+
+std::vector<int> asciiToBinary(const std::string& text) {
+    std::vector<int> result;
+    for (char c : text) {
+        if (c >= 32 && c <= 127) {
+            for (int i = 0; i <= 6; i++) {
+                int bit = (c >> i) & 1;
+                result.push_back(bit);
+            }
+        }
+        else {
+            std::cout << "niepoprawny znak" << std::endl;
+        }
+    }
+    return result;
+}
+void modulacja(std::vector<double>& in, double N, double A, double fn, double fs) {
+    for (int i = 0; i < N; i++) {
+        double t = i / fs;
+        double mod = A * sin(2 * PI * fn * t);
+        in[i] = mod * in[i];
+    }
+}
+void modulacja_FSK(std::vector<double>& in, double N, double A, double fn1, double fn2, double fs, std::vector<double>& x1, std::vector<double>& x2) {
+    for (int i = 0; i < N; i++) {
+        double t = i / fs;
+        double mod = A * sin(2 * PI * fn1 * t);
+        x1.push_back(mod * in[i]);
+    }
+    for (int i = 0; i < N; i++) {
+        double t = i / fs;
+        double mod = A * sin(2 * PI * fn2 * t);
+        x2.push_back(mod * in[i]);
+    }
+}
+void ct(std::vector<double>& in, double N, double M, std::vector<double>& maxs) {
+    double max = 0;
+
+
+    for (int n = 1; n <= N; n++) {
+        if (n % static_cast<int>(M) == 0) {
+            maxs.push_back(in[n - 1]);
+        }
+        else {
+
+        }
+    }
+    for (int i = 0; i < N; i++) {
+        if (in[i] < 101) {
+            in[i] = 0;
+        }
+        else {
+            in[i] = 1;
+        }
+    }
+
+
+    //  std::cout << "20. " << in[20] << "\n";
+}
+void ct_psk(std::vector<double>& in, double N, double M, std::vector<double>& maxs) {
+    double max = 0;
+
+
+    for (int n = 1; n <= N; n++) {
+        if (n % static_cast<int>(M) == 0) {
+            maxs.push_back(in[n - 1]);
+        }
+        else {
+
+        }
+    }
+    for (int i = 0; i < N; i++) {
+        if (in[i] < 0) {
+            in[i] = 1;
+        }
+        else {
+            in[i] = 0;
+        }
+    }
+
+}
+void cts_psk(std::vector<double>& out, double N, double M, std::vector<double>& maxs, double B, double Tb, std::vector<double>& N_values, double fs) {
+    double t;
+    out.clear();
+    for (int n = 0; n < maxs.size(); n++) {
+        if (maxs[n] < 0) {
+            out.push_back(0);
+        }
+        else {
+            out.push_back(1);
+        }
+    }
+}
+void cts(std::vector<double>& out, double N, double M, std::vector<double>& maxs, double B, double Tb, std::vector<double>& N_values, double fs) {
+    double t;
+    out.clear();
+    for (int n = 0; n < maxs.size(); n++) {
+        if (maxs[n] > 110) {
+            out.push_back(1);
+        }
+        else {
+            out.push_back(0);
+        }
+    }
+}
+
+void calka(std::vector<double>& in, double N, double A, double fn, double fs, double M) {
+    double suma;
+    for (int n = 0; n < N; n++) {
+        if (n % static_cast<int>(M) == 0) {
+            suma = 0;
+        }
+        else {
+            suma = suma + in[n];
+            in[n] = suma;
+        }
+    }
+}
+void calka_FSK(std::vector<double>& x1, std::vector<double>& x2, std::vector<double>& x3, double N, double A, double fn, double fs, double M) {
+    double suma1;
+    double suma2;
+    for (int n = 0; n < N; n++) {
+        if (n % static_cast<int>(M) == 0) {
+            suma1 = 0;
+        }
+        else {
+            suma1 = suma1 + x1[n];
+            x1[n] = suma1;
+        }
+    }
+    for (int n = 0; n < N; n++) {
+        if (n % static_cast<int>(M) == 0) {
+            suma2 = 0;
+        }
+        else {
+            suma2 = suma2 + x2[n];
+            x2[n] = suma2;
+        }
+    }
+    for (int n = 0; n < N; n++) {
+        x3.push_back(x1[n] - x2[n]);
+    }
+}
+
+
+void ASK(std::vector<int>& binaryResult, std::vector<double>& N_values, std::vector<double>& out, double A1, double A2, double fn, double M, double Tb, double fs, double B) {
+    double t;
+    double N = M * 10;
+    for (int n = 0; n < B; n++) {
+
+        if (binaryResult[n] == 0) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(A1 * sin(2 * PI * fn * t));
+
+            }
+
+        }
+        else {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(A2 * sin(2 * PI * fn * t));
+            }
+
+        }
+    }
+
+
+
+}
+
+
+void PSK(std::vector<int>& binaryResult, std::vector<double>& N_values, std::vector<double>& out, double fn, double M, double Tb, double fs, double B) {
+    double t;
+    for (int n = 0; n < B; n++) {
+        if (binaryResult[n] == 0) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(sin(2 * PI * fn * t));
+            }
+        }
+        if (binaryResult[n] == 1) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(sin(2 * PI * fn * t + PI));
+            }
+        }
+    }
+
+
+
+}
+
+void FSK(std::vector<int>& binaryResult, std::vector<double>& N_values, std::vector<double>& out, double fn1, double fn2, double M, double Tb, double fs, double B) {
+    double t;
+    for (int n = 0; n < B; n++) {
+        if (binaryResult[n] == 0) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(sin(2 * PI * fn1 * t));
+            }
+        }
+        if (binaryResult[n] == 1) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(sin(2 * PI * fn2 * t));
+            }
+        }
+    }
+
+
+}
+
+void DFT(double N, std::vector<double>& out, std::vector<double>& tab_re, std::vector<double>& tab_im, std::vector<double>& fk_values, std::vector<double>& M_value, double fs) {
+    double a, b;
+    double fk;
+    double M;
+
+    for (int k = 0; k < N; k++) {
+        a = 0;
+        b = 0;
+        for (int n = 0; n < N; n++) {
+            a += out[n] * cos(-1 * (2 * PI * k * n / N));
+            b += out[n] * sin(-1 * (2 * PI * k * n / N));
+        }
+        tab_re.push_back(a);
+        tab_im.push_back(b);
+    }
+
+    for (double k = 0; k <= N / 2 - 1; k++) {
+        M = sqrt(pow(tab_re[k], 2) + pow(tab_im[k], 2));
+        M_value.push_back(10 * log10(M));
+        fk = k * fs / N;
+        fk_values.push_back(fk);
+    }
+}
+
+void hamming(std::vector<int>& binaryResult, std::vector<int>& hamming) {
+    int index = 0;
+    int x3, x5, x6, x7;
+
+    for (int i = 0; i < 7; i++) {
+        if (((i + 1) & ((i + 1) - 1)) == 0 ) {
+            x3 = binaryResult[0];
+            x5 = binaryResult[1];
+            x6 = binaryResult[2];
+            x7 = binaryResult[3];
+
+            if (i == 0)
+                hamming[i] = x3 ^ x5 ^ x7;
+            else if (i == 1)
+                hamming[i] = x3 ^ x6 ^ x7;
+            else if (i == 3)
+                hamming[i] = x5 ^ x6 ^ x7;
+        }
+        else {
+
+
+            hamming[i] = binaryResult[index];
+            index++;
+        }
+    }
+}
+void hamming_d(std::vector<int>& hamming) {
+    hamming[5] = !hamming[5];
+    int x1 = !(hamming[0]) ^ hamming[0];
+    int x2 = !(hamming[1]) ^ hamming[1];
+    int x4 = !(hamming[3]) ^ hamming[3];
+    for (int i = 0; i < 7; i++) {
+        std::cout << hamming[i];
+    }
+    std::cout << "\n";
+    int xs[3] = { x1,x2,x4 };
+    int suma = 0;
+    for (int i = 0; i < 3; i++) {
+        suma = suma + (xs[i] * (2 ^ i));
+    }
+
+    std::cout << "Suma: " << suma << "\n";
+    
+}
+
+int main() {
+    double B = 4;
+    std::string input = "zupa";
+
+    std::vector<int> binaryResult = asciiToBinary(input);
+    std::vector<int> binaryResult2 = { 1,1,0,1 };
+    std::cout << "Ciag bitow na wejsciu: " << std::endl;
+    for (int i = 0; i < B; i++) {
+        std::cout << binaryResult2[i];
+    }
+    std::cout << "\n" << std::endl;
+    int a = 4;
+    std::cout << "siema: " << (a & 1) << "\n";
+    std::vector<int> hamming_w(7);
+    std::vector<double> N_values;
+    std::vector<double> N_values2;
+    std::vector<double> N_values3;
+    std::vector<double> fk_values;
+    std::vector<double> tab_re;
+    std::vector<double> tab_im;
+    std::vector<double> y_values;
+    std::vector<double> z_values;
+    std::vector<double> M_value;
+    std::vector<double> out;
+    std::vector<double> out2;
+    std::vector<double> out3;
+    std::vector<double> maxs;
+    std::vector<double> x1;
+    std::vector<double> x2;
+    std::vector<double> x3;
+    double Tc = 10.0;
+    double fs = 200;
+    double N = Tc * fs;
+    double W = 2;
+    double A1 = 1;
+    double A2 = 2;
+    double Tb = Tc / B;
+    double M = Tb * fs;
+    double fn = W * (1 / Tb);
+    double fn1 = W + 1 / Tb;
+    double fn2 = W + 3 / Tb;
+    hamming(binaryResult2, hamming_w);
+    for (int i = 0; i < 7; i++) {
+        std::cout << hamming_w[i];
+    }
+    std::cout << "\n";
+    hamming_d(hamming_w);
+    /*ASK(binaryResult, N_values, out, A1, A2, fn, M, Tb, fs, B);
+    PSK(binaryResult, N_values2, out2, fn, M, Tb, fs, B);
+    FSK(binaryResult, N_values3, out3, fn1, fn2, M, Tb, fs, B);
+    plt::figure();
+    plt::plot(N_values, out2, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("fsk_z");
+    plt::show();
+    //modulacja_FSK(out3, N, A1, fn1, fn2, fs,x1,x2);
+    modulacja(out, N, A1, fn, fs);
+    plt::figure();
+    plt::plot(N_values, out2, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("psk_p");
+    plt::show();
+    calka(out, N, A1, fn, fs, M);
+    plt::figure();
+    plt::plot(N_values, out2, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("psk_p");
+    plt::show();
+    ct_psk(out2, N, M, maxs);
+    plt::figure();
+    plt::plot(N_values, out, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("psk_c");
+    plt::show();
+    cts_psk(out2, N, M, maxs, B, Tb, N_values, fs);
+    std::cout << "Ciag bitow po demodulacji" << std::endl;
+    for (int i = 0; i < B; i++) {
+        std::cout << out2[i];
+    }
+
+    /*ct(out, N, M, maxs, B, Tb, N_values, fs);
+    plt::figure();
+    plt::plot(N_values, out, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("ssd");
+    plt::show();
+/*plt::figure();
+plt::plot(N_values, x1, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("fsk_x1");
+plt::show();
+plt::figure();
+plt::plot(N_values, x2, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("fsk_x2");
+plt::show();
+calka_FSK(x1, x2,x3, N, A1, fn, fs, M);
+plt::figure();
+plt::plot(N_values, x1, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("fsk_p1");
+plt::show();
+plt::figure();
+plt::plot(N_values, x2, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("fsk_p1");
+plt::show();
+plt::plot(N_values, x3, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("fsk_p");
+plt::show();
+ct(x3, N, M, maxs);
+plt::figure();
+plt::plot(N_values, x3, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("fsk_c");
+plt::show();
+cts_psk(x3, N, M, maxs, B, Tb, N_values, fs);
+
+std::cout << "Ciag bitow po demodulacji" << std::endl;
+for (int i = 0; i < B; i++) {
+    std::cout << x3[i];
+}
+*/
+/*
+std::vector<int> values;
+for (int i = 0; i < 10; ++i) {
+    values.push_back(i);
+}
+std::vector<int> binaryResultLimited;
+for (size_t i = 0; i < 10 && i < binaryResult.size(); ++i) {
+    binaryResultLimited.push_back(binaryResult[i]);
+}
+plt::figure();
+
+// Pierwszy wykres
+plt::plot(values, binaryResultLimited, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("wykres wektora wejsciowego bitow");
+
+// Drugi wykres
+plt::figure();
+plt::plot(values, out2, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("wykres wektora wyjsciowego bitow");
+
+plt::show();
+*/
+
+/*
+calka(out3, N, A1, fn, fs, M);
+plt::figure();
+plt::plot(N_values, out2, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("psk_p");
+plt::show();
+ct_psk(out2, N, M, maxs);
+plt::figure();
+plt::plot(N_values, out2, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("psk_c");
+plt::show();
+cts_psk(out2, N, M, maxs, B, Tb, N_values, fs);
+std::cout << "Ciag bitow po demodulacji" << std::endl;
+for (int i = 0; i < B; i++) {
+    std::cout << out2[i];
+}
+*/
+/*ct(out, N, M, maxs, B, Tb, N_values, fs);
+plt::figure();
+plt::plot(N_values, out, "b-");
+plt::xlabel("czas");
+plt::ylabel("z(a)");
+plt::title("ssd");
+plt::show();
+*/
+
+
+
+/*
+kiss_fft_cfg cfg = kiss_fft_alloc(N, 0, 0, 0);
+std::vector<kiss_fft_cpx> cx_in(N), cx_out(N);
+
+for (int i = 0; i < N; i++) {
+    cx_in[i].r = out3[i];
+    cx_in[i].i = 0.0;
+}
+kiss_fft(cfg, &cx_in[0], &cx_out[0]);
+for (int k = 0; k < N; ++k) {
+    tab_re.push_back(cx_out[k].r);
+    tab_im.push_back(cx_out[k].i);
+}
+
+double fk;
+for (double k = 0; k <= N / 2 - 1; k++) {
+    M = sqrt(pow(tab_re[k], 2) + pow(tab_im[k], 2));
+    M_value.push_back(10 * log10(M));
+    fk = k * fs / N;
+    fk_values.push_back(fk);
+}
+
+*/
+//DFT(N, out, tab_re, tab_im, fk_values, M_value, fs);
+
+
+/*double max = M_value[0];
+for (double k = 0; k < N / 2 - 1; k++) {
+    if (M_value[k] > max) {
+        max = M_value[k];
+    }
+}
+int left_index;
+int right_index;
+for (double i = 0; i < N; ++i) {
+    if (M_value[i] >= max - 12) {
+        left_index = i;
+        break;
+    }
+}
+for (double i = N - 1; i >= 0; --i) {
+    if (M_value[i] >= max - 12) {
+        right_index = i;
+        break;
+    }
+}
+
+std::cout << "left : " << fk_values[left_index] << std::endl;
+std::cout << "right : " << fk_values[right_index] << std::endl;
+double width = fk_values[right_index] - fk_values[left_index];
+std::cout << "szerokosc pasma: " << width << std::endl;
+
+plt::plot(fk_values, M_value, "b-");
+plt::xlabel("f(k)");
+plt::ylabel("M'(k)");
+plt::title("widmo zf");
+plt::show();
+
+
+
+
+
+
+//plt::plot(fk_values_z, kreska, "g-");
+//std::cout << "Liczby w wektorze:" << std::endl;
+// std::cout << fk_values[1];
+
+ */
+    return 0;
+}
+
+
+
+
+
+
+
+/*
+ *  Copyright (c) 2003-2010, Mark Borgerding. All rights reserved.
+ *  This file is part of KISS FFT - https://github.com/mborgerding/kissfft
+ *
+ *  SPDX-License-Identifier: BSD-3-Clause
+ *  See COPYING file for more information.
+ */
+
+
+#include "_kiss_fft_guts.h"
+ /* The guts header contains all the multiplication and addition macros that are defined for
+  fixed or floating point complex numbers.  It also delares the kf_ internal functions.
+  */
+
+static void kf_bfly2(
+    kiss_fft_cpx* Fout,
+    const size_t fstride,
+    const kiss_fft_cfg st,
+    int m
+)
+{
+    kiss_fft_cpx* Fout2;
+    kiss_fft_cpx* tw1 = st->twiddles;
+    kiss_fft_cpx t;
+    Fout2 = Fout + m;
+    do {
+        C_FIXDIV(*Fout, 2); C_FIXDIV(*Fout2, 2);
+
+        C_MUL(t, *Fout2, *tw1);
+        tw1 += fstride;
+        C_SUB(*Fout2, *Fout, t);
+        C_ADDTO(*Fout, t);
+        ++Fout2;
+        ++Fout;
+    } while (--m);
+}
+
+static void kf_bfly4(
+    kiss_fft_cpx* Fout,
+    const size_t fstride,
+    const kiss_fft_cfg st,
+    const size_t m
+)
+{
+    kiss_fft_cpx* tw1, * tw2, * tw3;
+    kiss_fft_cpx scratch[6];
+    size_t k = m;
+    const size_t m2 = 2 * m;
+    const size_t m3 = 3 * m;
+
+
+    tw3 = tw2 = tw1 = st->twiddles;
+
+    do {
+        C_FIXDIV(*Fout, 4); C_FIXDIV(Fout[m], 4); C_FIXDIV(Fout[m2], 4); C_FIXDIV(Fout[m3], 4);
+
+        C_MUL(scratch[0], Fout[m], *tw1);
+        C_MUL(scratch[1], Fout[m2], *tw2);
+        C_MUL(scratch[2], Fout[m3], *tw3);
+
+        C_SUB(scratch[5], *Fout, scratch[1]);
+        C_ADDTO(*Fout, scratch[1]);
+        C_ADD(scratch[3], scratch[0], scratch[2]);
+        C_SUB(scratch[4], scratch[0], scratch[2]);
+        C_SUB(Fout[m2], *Fout, scratch[3]);
+        tw1 += fstride;
+        tw2 += fstride * 2;
+        tw3 += fstride * 3;
+        C_ADDTO(*Fout, scratch[3]);
+
+        if (st->inverse) {
+            Fout[m].r = scratch[5].r - scratch[4].i;
+            Fout[m].i = scratch[5].i + scratch[4].r;
+            Fout[m3].r = scratch[5].r + scratch[4].i;
+            Fout[m3].i = scratch[5].i - scratch[4].r;
+        }
+        else {
+            Fout[m].r = scratch[5].r + scratch[4].i;
+            Fout[m].i = scratch[5].i - scratch[4].r;
+            Fout[m3].r = scratch[5].r - scratch[4].i;
+            Fout[m3].i = scratch[5].i + scratch[4].r;
+        }
+        ++Fout;
+    } while (--k);
+}
+
+static void kf_bfly3(
+    kiss_fft_cpx* Fout,
+    const size_t fstride,
+    const kiss_fft_cfg st,
+    size_t m
+)
+{
+    size_t k = m;
+    const size_t m2 = 2 * m;
+    kiss_fft_cpx* tw1, * tw2;
+    kiss_fft_cpx scratch[5];
+    kiss_fft_cpx epi3;
+    epi3 = st->twiddles[fstride * m];
+
+    tw1 = tw2 = st->twiddles;
+
+    do {
+        C_FIXDIV(*Fout, 3); C_FIXDIV(Fout[m], 3); C_FIXDIV(Fout[m2], 3);
+
+        C_MUL(scratch[1], Fout[m], *tw1);
+        C_MUL(scratch[2], Fout[m2], *tw2);
+
+        C_ADD(scratch[3], scratch[1], scratch[2]);
+        C_SUB(scratch[0], scratch[1], scratch[2]);
+        tw1 += fstride;
+        tw2 += fstride * 2;
+
+        Fout[m].r = Fout->r - HALF_OF(scratch[3].r);
+        Fout[m].i = Fout->i - HALF_OF(scratch[3].i);
+
+        C_MULBYSCALAR(scratch[0], epi3.i);
+
+        C_ADDTO(*Fout, scratch[3]);
+
+        Fout[m2].r = Fout[m].r + scratch[0].i;
+        Fout[m2].i = Fout[m].i - scratch[0].r;
+
+        Fout[m].r -= scratch[0].i;
+        Fout[m].i += scratch[0].r;
+
+        ++Fout;
+    } while (--k);
+}
+
+static void kf_bfly5(
+    kiss_fft_cpx* Fout,
+    const size_t fstride,
+    const kiss_fft_cfg st,
+    int m
+)
+{
+    kiss_fft_cpx* Fout0, * Fout1, * Fout2, * Fout3, * Fout4;
+    int u;
+    kiss_fft_cpx scratch[13];
+    kiss_fft_cpx* twiddles = st->twiddles;
+    kiss_fft_cpx* tw;
+    kiss_fft_cpx ya, yb;
+    ya = twiddles[fstride * m];
+    yb = twiddles[fstride * 2 * m];
+
+    Fout0 = Fout;
+    Fout1 = Fout0 + m;
+    Fout2 = Fout0 + 2 * m;
+    Fout3 = Fout0 + 3 * m;
+    Fout4 = Fout0 + 4 * m;
+
+    tw = st->twiddles;
+    for (u = 0; u < m; ++u) {
+        C_FIXDIV(*Fout0, 5); C_FIXDIV(*Fout1, 5); C_FIXDIV(*Fout2, 5); C_FIXDIV(*Fout3, 5); C_FIXDIV(*Fout4, 5);
+        scratch[0] = *Fout0;
+
+        C_MUL(scratch[1], *Fout1, tw[u * fstride]);
+        C_MUL(scratch[2], *Fout2, tw[2 * u * fstride]);
+        C_MUL(scratch[3], *Fout3, tw[3 * u * fstride]);
+        C_MUL(scratch[4], *Fout4, tw[4 * u * fstride]);
+
+        C_ADD(scratch[7], scratch[1], scratch[4]);
+        C_SUB(scratch[10], scratch[1], scratch[4]);
+        C_ADD(scratch[8], scratch[2], scratch[3]);
+        C_SUB(scratch[9], scratch[2], scratch[3]);
+
+        Fout0->r += scratch[7].r + scratch[8].r;
+        Fout0->i += scratch[7].i + scratch[8].i;
+
+        scratch[5].r = scratch[0].r + S_MUL(scratch[7].r, ya.r) + S_MUL(scratch[8].r, yb.r);
+        scratch[5].i = scratch[0].i + S_MUL(scratch[7].i, ya.r) + S_MUL(scratch[8].i, yb.r);
+
+        scratch[6].r = S_MUL(scratch[10].i, ya.i) + S_MUL(scratch[9].i, yb.i);
+        scratch[6].i = -S_MUL(scratch[10].r, ya.i) - S_MUL(scratch[9].r, yb.i);
+
+        C_SUB(*Fout1, scratch[5], scratch[6]);
+        C_ADD(*Fout4, scratch[5], scratch[6]);
+
+        scratch[11].r = scratch[0].r + S_MUL(scratch[7].r, yb.r) + S_MUL(scratch[8].r, ya.r);
+        scratch[11].i = scratch[0].i + S_MUL(scratch[7].i, yb.r) + S_MUL(scratch[8].i, ya.r);
+        scratch[12].r = -S_MUL(scratch[10].i, yb.i) + S_MUL(scratch[9].i, ya.i);
+        scratch[12].i = S_MUL(scratch[10].r, yb.i) - S_MUL(scratch[9].r, ya.i);
+
+        C_ADD(*Fout2, scratch[11], scratch[12]);
+        C_SUB(*Fout3, scratch[11], scratch[12]);
+
+        ++Fout0;++Fout1;++Fout2;++Fout3;++Fout4;
+    }
+}
+
+/* perform the butterfly for one stage of a mixed radix FFT */
+static void kf_bfly_generic(
+    kiss_fft_cpx* Fout,
+    const size_t fstride,
+    const kiss_fft_cfg st,
+    int m,
+    int p
+)
+{
+    int u, k, q1, q;
+    kiss_fft_cpx* twiddles = st->twiddles;
+    kiss_fft_cpx t;
+    int Norig = st->nfft;
+
+    kiss_fft_cpx* scratch = (kiss_fft_cpx*)KISS_FFT_TMP_ALLOC(sizeof(kiss_fft_cpx) * p);
+    if (scratch == NULL) {
+        KISS_FFT_ERROR("Memory allocation failed.");
+        return;
+    }
+
+    for (u = 0; u < m; ++u) {
+        k = u;
+        for (q1 = 0; q1 < p; ++q1) {
+            scratch[q1] = Fout[k];
+            C_FIXDIV(scratch[q1], p);
+            k += m;
+        }
+
+        k = u;
+        for (q1 = 0; q1 < p; ++q1) {
+            int twidx = 0;
+            Fout[k] = scratch[0];
+            for (q = 1;q < p;++q) {
+                twidx += fstride * k;
+                if (twidx >= Norig) twidx -= Norig;
+                C_MUL(t, scratch[q], twiddles[twidx]);
+                C_ADDTO(Fout[k], t);
+            }
+            k += m;
+        }
+    }
+    KISS_FFT_TMP_FREE(scratch);
+}
+
+static
+void kf_work(
+    kiss_fft_cpx* Fout,
+    const kiss_fft_cpx* f,
+    const size_t fstride,
+    int in_stride,
+    int* factors,
+    const kiss_fft_cfg st
+)
+{
+    kiss_fft_cpx* Fout_beg = Fout;
+    const int p = *factors++; /* the radix  */
+    const int m = *factors++; /* stage's fft length/p */
+    const kiss_fft_cpx* Fout_end = Fout + p * m;
+
+#ifdef _OPENMP
+    // use openmp extensions at the
+    // top-level (not recursive)
+    if (fstride == 1 && p <= 5 && m != 1)
+    {
+        int k;
+
+        // execute the p different work units in different threads
+#       pragma omp parallel for
+        for (k = 0;k < p;++k)
+            kf_work(Fout + k * m, f + fstride * in_stride * k, fstride * p, in_stride, factors, st);
+        // all threads have joined by this point
+
+        switch (p) {
+        case 2: kf_bfly2(Fout, fstride, st, m); break;
+        case 3: kf_bfly3(Fout, fstride, st, m); break;
+        case 4: kf_bfly4(Fout, fstride, st, m); break;
+        case 5: kf_bfly5(Fout, fstride, st, m); break;
+        default: kf_bfly_generic(Fout, fstride, st, m, p); break;
+        }
+        return;
+    }
+#endif
+
+    if (m == 1) {
+        do {
+            *Fout = *f;
+            f += fstride * in_stride;
+        } while (++Fout != Fout_end);
+    }
+    else {
+        do {
+            // recursive call:
+            // DFT of size m*p performed by doing
+            // p instances of smaller DFTs of size m,
+            // each one takes a decimated version of the input
+            kf_work(Fout, f, fstride * p, in_stride, factors, st);
+            f += fstride * in_stride;
+        } while ((Fout += m) != Fout_end);
+    }
+
+    Fout = Fout_beg;
+
+    // recombine the p smaller DFTs
+    switch (p) {
+    case 2: kf_bfly2(Fout, fstride, st, m); break;
+    case 3: kf_bfly3(Fout, fstride, st, m); break;
+    case 4: kf_bfly4(Fout, fstride, st, m); break;
+    case 5: kf_bfly5(Fout, fstride, st, m); break;
+    default: kf_bfly_generic(Fout, fstride, st, m, p); break;
+    }
+}
+
+/*  facbuf is populated by p1,m1,p2,m2, ...
+    where
+    p[i] * m[i] = m[i-1]
+    m0 = n                  */
+static
+void kf_factor(int n, int* facbuf)
+{
+    int p = 4;
+    double floor_sqrt;
+    floor_sqrt = floor(sqrt((double)n));
+
+    /*factor out powers of 4, powers of 2, then any remaining primes */
+    do {
+        while (n % p) {
+            switch (p) {
+            case 4: p = 2; break;
+            case 2: p = 3; break;
+            default: p += 2; break;
+            }
+            if (p > floor_sqrt)
+                p = n;          /* no more factors, skip to end */
+        }
+        n /= p;
+        *facbuf++ = p;
+        *facbuf++ = n;
+    } while (n > 1);
+}
+
+/*
+ *
+ * User-callable function to allocate all necessary storage space for the fft.
+ *
+ * The return value is a contiguous block of memory, allocated with malloc.  As such,
+ * It can be freed with free(), rather than a kiss_fft-specific function.
+ * */
+kiss_fft_cfg kiss_fft_alloc(int nfft, int inverse_fft, void* mem, size_t* lenmem)
+{
+    KISS_FFT_ALIGN_CHECK(mem)
+
+        kiss_fft_cfg st = NULL;
+    size_t memneeded = KISS_FFT_ALIGN_SIZE_UP(sizeof(struct kiss_fft_state)
+        + sizeof(kiss_fft_cpx) * (nfft - 1)); /* twiddle factors*/
+
+    if (lenmem == NULL) {
+        st = (kiss_fft_cfg)KISS_FFT_MALLOC(memneeded);
+    }
+    else {
+        if (mem != NULL && *lenmem >= memneeded)
+            st = (kiss_fft_cfg)mem;
+        *lenmem = memneeded;
+    }
+    if (st) {
+        int i;
+        st->nfft = nfft;
+        st->inverse = inverse_fft;
+
+        for (i = 0;i < nfft;++i) {
+            const double pi = 3.141592653589793238462643383279502884197169399375105820974944;
+            double phase = -2 * pi * i / nfft;
+            if (st->inverse)
+                phase *= -1;
+            kf_cexp(st->twiddles + i, phase);
+        }
+
+        kf_factor(nfft, st->factors);
+    }
+    return st;
+}
+
+
+void kiss_fft_stride(kiss_fft_cfg st, const kiss_fft_cpx* fin, kiss_fft_cpx* fout, int in_stride)
+{
+    if (fin == fout) {
+        //NOTE: this is not really an in-place FFT algorithm.
+        //It just performs an out-of-place FFT into a temp buffer
+        if (fout == NULL) {
+            KISS_FFT_ERROR("fout buffer NULL.");
+            return;
+        }
+
+        kiss_fft_cpx* tmpbuf = (kiss_fft_cpx*)KISS_FFT_TMP_ALLOC(sizeof(kiss_fft_cpx) * st->nfft);
+        if (tmpbuf == NULL) {
+            KISS_FFT_ERROR("Memory allocation error.");
+            return;
+        }
+
+
+
+        kf_work(tmpbuf, fin, 1, in_stride, st->factors, st);
+        memcpy(fout, tmpbuf, sizeof(kiss_fft_cpx) * st->nfft);
+        KISS_FFT_TMP_FREE(tmpbuf);
+    }
+    else {
+        kf_work(fout, fin, 1, in_stride, st->factors, st);
+    }
+}
+
+void kiss_fft(kiss_fft_cfg cfg, const kiss_fft_cpx* fin, kiss_fft_cpx* fout)
+{
+    kiss_fft_stride(cfg, fin, fout, 1);
+}
+
+
+void kiss_fft_cleanup(void)
+{
+    // nothing needed any more
+}
+
+int kiss_fft_next_fast_size(int n)
+{
+    while (1) {
+        int m = n;
+        while ((m % 2) == 0) m /= 2;
+        while ((m % 3) == 0) m /= 3;
+        while ((m % 5) == 0) m /= 5;
+        if (m <= 1)
+            break; /* n is completely factorable by twos, threes, and fives */
+        n++;
+    }
+    return n;
+}

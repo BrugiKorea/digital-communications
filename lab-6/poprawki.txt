@@ -1,0 +1,6 @@
+poprawiłem plik kod.cpp
+
+lista zmian względem ostatniego commita
+
+- czytelniejsze wyświetlanie informacji
+- dodanie detektora błędu dla dekodera(15,11), wcześniej liczyłem tylko syndrom na podstaiwe wektora s, teraz jest detekcja i korekcja

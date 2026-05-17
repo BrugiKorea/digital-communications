@@ -1,0 +1,75 @@
+Dla sygnałów modulowanych amplitudowo można zauważyć że im większa jest wartość kA tym amplituda się zwiększa (różnica między jedną amplituda a następna jest mniejsza)
+
+Dla sygnałów modulowanych fazowo, im większa wartość Kp tym mniejsze przesunięcie fazowe
+
+Dla sygnałów modulowanych metodą częstotliwości im większy fk tym występuje większe drgania i wartości są bardziej zmienne
+
+
+
+Tc = 3.0
+Fs = 1000
+fm = 2
+fn = fs/4
+
+Szerokości pasma:
+
+3dB:
+za(a) - 0 dla Ka = 0.96
+za(b) - 4 dla Ka = 6.96
+za(c) - 4 dla Ka = 24.96
+
+zp(a) - 0 dla Kp = 0.452
+zp(b) - 8 dla Kp = 2.452
+zp(c) - 36 dla Kp = 9.452
+
+zf(a) - 0 dla kf = 0.52
+zf(b) - 4 dla kf = 2.52
+zf(c) - 16 dla kf = 6.52
+
+
+6dB:
+za(a) - 4 dla Ka = 0.96
+za(b) - 4 dla Ka = 6.96
+za(c) - 4 dla Ka = 24.96
+
+zp(a) - 0 dla Kp = 0.452
+zp(b) - 12 dla Kp = 2.452
+zp(c) - 44 dla Kp = 9.452
+
+zf(a) - 0 dla Kf = 0.52
+zf(b) - 8 dla Kf = 2.52
+zf(c) - 20 dla Kf = 6.52
+
+
+12dB:
+za(a) - 4 dla Ka = 0.96
+za(b) - 4 dla Ka = 6.96
+za(c) - 4 dla Ka = 24.96
+
+zp(a) - 4 dla Kp = 0.452
+zp(b) - 16 dla Kp = 2.452
+zp(c) - 48 dla Kp = 9.452
+
+zf(a) - 4 dla kf = 0.52
+zf(b) - 8 dla kf = 2.25
+zf(c) - 24 dla kf = 6.52
+
+
+wnioski z samego obliczania szerokość pasma:
+
+wykonałem przynajmniej paredziesiąt pomiarów pasma, zauważyłem że wszystkie wartości są liczbami całkowitymi co wydało mi się przynajmniej dziwne. 
+
+Przy obliczaniu widma nasza oś częstotliwość miała taką postać:
+fk = k * fs / N;
+fk_values.push_back(fk);
+
+po sprawdzeniu osobno wszystkich wartości naszego wektora fk_values zauważyłem że jego wartości są następujące:
+0, 0.33, 0.66, 1, 1.33, 1.66, 2 .... 500
+Przez to ten wektor nie jest bardzo dokładny (np jego wartość nie zmienia się co 0.1) to praktycznie te wszystkie wyliczenia szerokości są jedynie przybliżeniem a nie faktyczną jego wartością. Dzieje się tak ponieważ jak załóżymy nasz max = 29.1245, (zakładamy że to jest skala decybelowa) odejmujemy 3dB i mamy 26.1245 to może być taka sytuacja że argument lewego skrajnego punktu którego wartość = 26.1245 jest równy np 284.98, lecz przez to że nasz wektor osi częstotliwości weźmie najbliższą wartość do niej czyli 285, to nasza szerokość pasma będzie tylko bardzo bliskim przybliżeniem faktycznej wartości. Chciałbym też dopisać że jeśli w pomiarach napisałem że pasmo np za_(a) - 0, to znaczy że jest to wartość bardzo bliska 0. W zasadzie w naszym zadaniu nie może wystąpić sytuacja gdzie pasmo jest = 0 ponieważ zawsze będzie to szerokość nawet tylko jednego prączka dla którego wyznaczyliśmy max. Oprócz tego sprawdziłem jeszcze dla innych wartości fn, fm i czasami zdarzało się że faktycznie wyłapywało nie wartość całkowtia np 285, ale 284.66 więc chyba wszystko w porządku.
+
+
+
+ 
+
+
+

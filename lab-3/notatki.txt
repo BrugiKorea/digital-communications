@@ -1,0 +1,16 @@
+wektor musi byc potega liczby 2 w fft i dft
+sin(2 * pi * f * t) sprawdzic czy widma sa git
+jak zwiekszamy f i prazek sie przesuwa to jest dobrze
+
+
+
+szukamy maksimum w widmie
+
+yznaczam w decybelach
+robie roznice o 3 db od maks
+i sprawdzam w ktorych miejscach sie przecina
+
+fs/n - rozdzielczosc prazka
+
+
+dla widma z(a)_a sprobowac dac wieksze fm

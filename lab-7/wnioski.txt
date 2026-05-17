@@ -1,0 +1,2 @@
+na pewno wnioskiem jest to, że przez to że w procesie domodulacji liczymi całki (sumy) to często to czy na podstawie wartości sumy damy do wektora 0 albo 1 sprawia, że jak nasze h jest wpisane na sztywno, to praktycznie nasze ber jest często takie same ponieważ nawet dla lekkiego szumu/tłumienia nasze sumy mogą już nie łapać się do jakiegoś h
+

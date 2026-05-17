@@ -1,0 +1,301 @@
+#include <iostream>
+#include "matplotlibcpp.h"
+#include <vector>
+#include <cmath>
+#include <cstdlib> 
+#include <ctime>   
+#include <string>
+#include <cstring> 
+#include "kiss_fft.h"
+#include<Eigen/Dense>
+
+using namespace Eigen;
+
+
+namespace plt = matplotlibcpp;
+double PI = 3.14159;
+
+
+Matrix<int, 11, 15> createG(Matrix<int, 11, 4>& P) {
+    Matrix<int, 11, 15> G;
+
+    Matrix<int, 15, 4> build;
+    for (int i = 0; i < 15; ++i) {
+        build(i, 0) = ((i + 1) >> 3) & 1;
+        build(i, 1) = ((i + 1) >> 2) & 1;
+        build(i, 2) = ((i + 1) >> 1) & 1;
+        build(i, 3) = (i + 1) & 1;
+    }
+    std::cout << "Build Matrix:\n" << build << std::endl;
+
+    int row_p = 0;
+    for (int row_build = 0; row_build < 15; ++row_build) {
+        if ((row_build & (row_build + 1)) == 0)
+            continue;
+
+        for (int col = 0; col < 4; ++col) {
+            P(row_p, col) = build(row_build, 3 - col);
+        }
+        ++row_p;
+    }
+
+    std::cout << "P Matrix:\n" << P << std::endl;
+
+    Matrix<int, 11, 11> I_k = Matrix<int, 11, 11>::Identity();
+    std::cout << I_k << std::endl;
+    G << P, I_k;
+    std::cout << G << std::endl;
+    return G;
+}
+
+Matrix<int, 4, 15> createH(const Matrix<int, 11, 4>& P) {
+
+    Matrix<int, 4, 11> P_transposed = P.transpose();
+
+
+    Matrix<int, 4, 4> I_m = Matrix<int, 4, 4>::Identity();
+
+
+    Matrix<int, 4, 15> H;
+    H << I_m, P_transposed;
+
+    std::cout << "H Matrix:\n" << H << std::endl;
+
+    return H;
+}
+
+std::vector<int> asciiToBinary(const std::string& text) {
+    std::vector<int> result;
+    for (char c : text) {
+        if (c >= 32 && c <= 127) {
+            for (int i = 0; i <= 6; i++) {
+                int bit = (c >> i) & 1;
+                result.push_back(bit);
+            }
+        }
+        else {
+            std::cout << "niepoprawny znak" << std::endl;
+        }
+    }
+    return result;
+}
+
+void ASK(std::vector<int>& binaryResult, std::vector<double>& N_values, std::vector<double>& out, double A1, double A2, double fn, double M, double Tb, double fs, double B) {
+    double t;
+    double N = M * 10;
+    for (int n = 0; n < B; n++) {
+
+        if (binaryResult[n] == 0) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(A1 * sin(2 * PI * fn * t));
+
+            }
+
+        }
+        else {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(A2 * sin(2 * PI * fn * t));
+            }
+
+        }
+    }
+
+
+
+}
+
+void modulacja(std::vector<double>& in, double N, double A, double fn, double fs) {
+    for (int i = 0; i < N; i++) {
+        double t = i / fs;
+        double mod = A * sin(2 * PI * fn * t);
+        in[i] = mod * in[i];
+    }
+}
+void modulacja(std::vector<double>& in, double N, double A, double fn, double fs) {
+    for (int i = 0; i < N; i++) {
+        double t = i / fs;
+        double mod = A * sin(2 * PI * fn * t);
+        in[i] = mod * in[i];
+    }
+}
+
+void hamming(std::vector<int>& binaryResult, std::vector<int>& hamming) {
+    int index = 0;
+    int x3, x5, x6, x7;
+
+    for (int i = 0; i < 7; i++) {
+        if (((i + 1) & ((i + 1) - 1)) == 0) {
+            x3 = binaryResult[0];
+            x5 = binaryResult[1];
+            x6 = binaryResult[2];
+            x7 = binaryResult[3];
+
+            if (i == 0)
+                hamming[i] = x3 ^ x5 ^ x7;
+            else if (i == 1)
+                hamming[i] = x3 ^ x6 ^ x7;
+            else if (i == 3)
+                hamming[i] = x5 ^ x6 ^ x7;
+        }
+        else {
+
+
+            hamming[i] = binaryResult[index];
+            index++;
+        }
+    }
+}
+void hamming2(std::vector<int>& binaryResult, std::vector<int>& hamming) {
+    int index = 0;
+
+    for (int i = 0; i < 15; i++) {
+        if (((i + 1) & ((i + 1) - 1)) != 0) {
+            hamming[i] = binaryResult[index];
+            index++;
+        }
+        else {
+            hamming[i] = 9;
+        }
+    }
+
+}
+
+void hamming_d(std::vector<int>& hamming) {
+
+    hamming[5] = !hamming[5];
+
+    int suma;
+    do {
+
+        int x1 = hamming[0] ^ hamming[2] ^ hamming[4] ^ hamming[6];
+        int x2 = hamming[1] ^ hamming[2] ^ hamming[5] ^ hamming[6];
+        int x4 = hamming[3] ^ hamming[4] ^ hamming[5] ^ hamming[6];
+
+        std::cout << "x1: " << x1 << std::endl;
+        std::cout << "x2: " << x2 << std::endl;
+        std::cout << "x4: " << x4 << std::endl;
+
+        for (int i = 0; i < 7; i++) {
+            std::cout << hamming[i];
+        }
+        std::cout << "\n";
+
+        int xs[3] = { x1, x2, x4 };
+        suma = 0;
+        for (int i = 0; i < 3; i++) {
+            suma += xs[i] * std::pow(2, i);
+            std::cout << "x" << i << ": " << xs[i] << std::endl;
+        }
+        std::cout << "Suma: " << suma << "\n";
+
+        if (suma != 0) {
+            hamming[suma - 1] = !hamming[suma - 1];
+        }
+
+    } while (suma != 0);
+
+
+    std::cout << "Skorygowane bity Hamming: ";
+    std::cout << hamming[2] << " " << hamming[4] << " " << hamming[5] << " " << hamming[6] << std::endl;
+}
+
+
+int main() {
+    double B = 4;
+    std::string input = "zupa";
+    Matrix<int, 11, 4> P;
+    std::vector<int> binaryResult = asciiToBinary(input);
+    std::vector<int> binaryResult2 = { 1,1,0,1 };
+    std::vector<int> binaryResult3 = { 1,0,1,1,0,1,1,0,1,1,0 };
+    std::cout << "Ciag bitow na wejsciu: " << std::endl;
+    for (int i = 0; i < B; i++) {
+        std::cout << binaryResult2[i];
+    }
+    std::cout << "\n" << std::endl;
+    int a = 4;
+    Matrix <float, 3, 3> matrixA;
+    matrixA.setZero();
+    std::cout << matrixA << std::endl;
+    std::cout << "siema: " << (a & 1) << "\n";
+    std::vector<int> hamming_w(7);
+    std::vector<int> hamming2_w(15);
+    std::vector<double> x1;
+    std::vector<double> x2;
+    std::vector<double> x3;
+    hamming(binaryResult2, hamming_w);
+    for (int i = 0; i < 7; i++) {
+        std::cout << hamming_w[i];
+    }
+    std::cout << "\n";
+    hamming_d(hamming_w);
+    Matrix<int, 11, 15> G = createG(P);
+    Matrix<int, 1, 11> d;
+    d << 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0;
+    std::vector<double> N_values;
+    std::vector<double> N_values2;
+    std::vector<double> N_values3;
+    std::vector<double> fk_values;
+    std::vector<double> tab_re;
+    std::vector<double> tab_im;
+    std::vector<double> y_values;
+    std::vector<double> z_values;
+    std::vector<double> M_value;
+    std::vector<double> out;
+    std::vector<double> out2;
+    std::vector<double> out3;
+    std::vector<double> maxs;
+    std::vector<double> x1;
+    std::vector<double> x2;
+    std::vector<double> x3;
+    double Tc = 10.0;
+    double fs = 200;
+    double N = Tc * fs;
+    double W = 2;
+    double A1 = 1;
+    double A2 = 2;
+    double Tb = Tc / B;
+    double M = Tb * fs;
+    double fn = W * (1 / Tb);
+    double fn1 = W + 1 / Tb;
+    double fn2 = W + 3 / Tb;
+    ASK(binaryResult, N_values, out, A1, A2, fn, M, Tb, fs, B);
+
+    Matrix<int, 1, 15> c = d * G;
+
+
+    for (int i = 0; i < c.size(); ++i) {
+        c(i) = c(i) % 2;
+    }
+
+    std::cout << "Wektor danych:     " << d << std::endl;
+    std::cout << "Zakodowany wektor: " << c << std::endl;
+
+    Matrix<int, 15, 4> H_t = createH(P).transpose();
+    c(3) = !c(3);
+    Matrix<int, 1, 4> s = c * H_t;
+
+    for (int i = 0; i < c.size(); ++i) {
+        s(i) = s(i) % 2;
+    }
+
+    int suma = 0;
+    for (int i = 0; i < s.size(); ++i) {
+        suma += s(i) * std::pow(2, i);
+    }
+
+
+
+    std::cout << "Wektor " << s << std::endl;
+    std::cout << "Suma: " << suma << std::endl;
+    return 0;
+}
+
+
+
+
+
+

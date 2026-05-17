@@ -1,0 +1,25 @@
+#include <iostream>
+
+int main()
+{
+    
+    //Tc - czas trwania w sekundach [s]
+    // fs - czestotliwosc próbkowania [Hz = 1/s]
+    // N = [ Tc * fs ] - liczba próbek przypadajace na sygnał funckja podgloga
+    // Ts = 1/fs   - okres próbkowania [s]
+    // fmax - gorna granica czestotliwosc sygnalu probkowanego [Hz]
+    // fmax = fs/z
+    // n = 0;..... N - 1
+    int tab[100];
+    int n;
+    int t;
+    int fs;
+    for (int i = 0; i < n; i++) {
+        t = n/fs
+        // x = .....
+        tab[n] = x;
+
+    }
+    
+}
+

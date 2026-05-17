@@ -1,0 +1,24 @@
+
+
+szerokości pasma
+
+
+ASK
+
+za - 0 dla 3dB
+za - 0 dla 6dB
+za - 0.333 dla 12dB
+
+PSK
+
+zp - 4 dla 3dB
+zp - 8 dla 6dB
+zp - 15 dla 12dB
+
+FSK
+
+zp - 3.3333 dla 3dB
+zp - 3.3333 dla 6dB
+zp - 8 dla 12dB
+
+

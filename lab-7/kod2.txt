@@ -1,0 +1,548 @@
+#include <iostream>
+#include "matplotlibcpp.h"
+#include <vector>
+#include <cmath>
+#include <cstdlib> 
+#include <ctime>   
+#include <string>
+#include <cstring> 
+#include <math.h>
+#include <ctime>
+#include "kiss_fft.h"
+#include<Eigen/Dense>
+
+
+
+using namespace Eigen;
+
+
+namespace plt = matplotlibcpp;
+double PI = 3.14159;
+
+void modulacja(std::vector<double>& in, double N, double A, double fn, double fs) {
+    for (int i = 0; i < N; i++) {
+        double t = i / fs;
+        double mod = A * sin(2 * PI * fn * t);
+        in[i] = mod * in[i];
+    }
+}
+
+void calka(std::vector<double>& in, double N, double A, double fn, double fs, double M) {
+    double suma;
+    for (int n = 0; n < N; n++) {
+        if (n % static_cast<int>(M) == 0) {
+            suma = 0;
+        }
+        else {
+            suma = suma + in[n];
+            in[n] = suma;
+        }
+    }
+}
+void calka_FSK(std::vector<double>& x1, std::vector<double>& x2, std::vector<double>& x3, double N, double A, double fn, double fs, double M) {
+    double suma1;
+    double suma2;
+    for (int n = 0; n < N; n++) {
+        if (n % static_cast<int>(M) == 0) {
+            suma1 = 0;
+        }
+        else {
+            suma1 = suma1 + x1[n];
+            x1[n] = suma1;
+        }
+    }
+    for (int n = 0; n < N; n++) {
+        if (n % static_cast<int>(M) == 0) {
+            suma2 = 0;
+        }
+        else {
+            suma2 = suma2 + x2[n];
+            x2[n] = suma2;
+        }
+    }
+    for (int n = 0; n < N; n++) {
+        x3[n] = (x1[n] - x2[n]);
+    }
+}
+
+void modulacja_FSK(std::vector<double>& in, double N, double A, double fn1, double fn2, double fs, std::vector<double>& x1, std::vector<double>& x2) {
+    for (int i = 0; i < N; i++) {
+        double t = i / fs;
+        double mod = A * sin(2 * PI * fn1 * t);
+        x1.push_back(mod * in[i]);
+    }
+    for (int i = 0; i < N; i++) {
+        double t = i / fs;
+        double mod = A * sin(2 * PI * fn2 * t);
+        x2.push_back(mod * in[i]);
+    }
+}
+void ct(std::vector<double>& in, double N, double M, std::vector<double>& maxs) {
+    double max = 0;
+
+
+    for (int n = 1; n <= N; n++) {
+        if (n % static_cast<int>(M) == 0) {
+            maxs.push_back(in[n - 1]);
+        }
+        else {
+
+        }
+    }
+    for (int i = 0; i < N; i++) {
+        if (in[i] < 50) {
+            in[i] = 0;
+        }
+        else {
+            in[i] = 1;
+        }
+    }
+
+
+    //  std::cout << "20. " << in[20] << "\n";
+}
+void ct_psk(std::vector<double>& in, double N, double M, std::vector<double>& maxs) {
+    double max = 0;
+
+
+    for (int n = 1; n <= N; n++) {
+        if (n % static_cast<int>(M) == 0) {
+            maxs.push_back(in[n - 1]);
+        }
+        else {
+
+        }
+    }
+    for (int i = 0; i < N; i++) {
+        if (in[i] < 0) {
+            in[i] = 1;
+        }
+        else {
+            in[i] = 0;
+        }
+    }
+
+}
+void cts_psk(std::vector<double>& out, double N, double M, std::vector<double>& maxs, double B, double Tb, std::vector<double>& N_values, double fs) {
+    double t;
+    out.clear();
+    for (int n = 0; n < maxs.size(); n++) {
+        if (maxs[n] < 0) {
+            out.push_back(1);
+        }
+        else {
+            out.push_back(0);
+        }
+    }
+}
+
+
+void BER(double blad, std::vector<int>& binaryResult, std::vector<int>& decoded, std::vector<double>& BERS, std::vector<int> alphas) {
+    blad = 0;
+    for (int i = 0; i < 44; i++) {
+        if (binaryResult[i] != decoded[i]) {
+            blad++;
+        }
+        BERS.push_back(blad / 44 * 100);
+
+    }
+}
+void cts(std::vector<double>& out, double N, double M, std::vector<double>& maxs, double B, double Tb, std::vector<double>& N_values, double fs) {
+    double t;
+    out.clear();
+    for (int n = 0; n < maxs.size(); n++) {
+        if (maxs[n] > 50) {
+            out.push_back(1);
+        }
+        else {
+            out.push_back(0);
+        }
+    }
+}
+
+
+std::vector<int> asciiToBinary(const std::string& text) {
+    std::vector<int> result;
+    for (char c : text) {
+        if (c >= 32 && c <= 127) {
+            for (int i = 0; i <= 6; i++) {
+                int bit = (c >> i) & 1;
+                result.push_back(bit);
+            }
+        }
+        else {
+            std::cout << "niepoprawny znak" << std::endl;
+        }
+    }
+    return result;
+}
+
+void ASK(std::vector<int>& binaryResult, std::vector<double>& N_values, std::vector<double>& out, double A1, double A2, double fn, double M, double Tb, double fs, double B) {
+    std::cout << "Przeprowadzana jest operacja modulacji\n" << std::endl;
+    double t;
+    double N = M * B;
+    for (int n = 0; n < B; n++) {
+
+        if (binaryResult[n] == 0) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(A1 * sin(2 * PI * fn * t));
+
+            }
+
+        }
+        else {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(A2 * sin(2 * PI * fn * t));
+            }
+
+        }
+    }
+
+
+
+}
+
+void ASK_d(std::vector<int>& binaryResult, std::vector<double>& N_values, std::vector<double>& out, double A1, double A2, double fn, double M, double Tb, double fs, double B, double N, std::vector<double>& maxs) {
+    modulacja(out, N, A1, fn, fs);
+    plt::figure();
+    plt::plot(N_values, out, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("asksss_a");
+    plt::show();
+
+    calka(out, N, A1, fn, fs, M);
+    plt::figure();
+    plt::plot(N_values, out, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("ask_a");
+    plt::show();
+
+    ct(out, N, M, maxs);
+
+    plt::figure();
+    plt::plot(N_values, out, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("ask_a");
+    plt::show();
+
+    cts(out, N, M, maxs, B, Tb, N_values, fs);
+    std::cout << "Wektor po demodulacji ";
+    for (int i = 0; i < maxs.size();i++) {
+        std::cout << out[i];
+    }
+    std::cout << std::endl;
+
+}
+
+void PSK(std::vector<int>& binaryResult, std::vector<double>& N_values, std::vector<double>& out, double fn, double M, double Tb, double fs, double B) {
+    double t;
+    for (int n = 0; n < B; n++) {
+        if (binaryResult[n] == 0) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(sin(2 * PI * fn * t));
+            }
+        }
+        if (binaryResult[n] == 1) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(sin(2 * PI * fn * t + PI));
+            }
+        }
+    }
+
+
+
+}
+
+void PSK_d(std::vector<int>& binaryResult, std::vector<double>& N_values, std::vector<double>& out, double A1, double A2, double fn, double M, double Tb, double fs, double B, double N, std::vector<double>& maxs) {
+    modulacja(out, N, A1, fn, fs);
+    plt::figure();
+    plt::plot(N_values, out, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("asksss_a");
+    plt::show();
+    calka(out, N, A1, fn, fs, M);
+    plt::figure();
+    plt::plot(N_values, out, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("ask_a");
+    plt::show();
+    ct_psk(out, N, M, maxs);
+
+    plt::figure();
+    plt::plot(N_values, out, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("ask_a");
+    plt::show();
+    cts_psk(out, N, M, maxs, B, Tb, N_values, fs);
+    std::cout << "Wektor po demodulacji ";
+    for (int i = 0; i < maxs.size();i++) {
+        std::cout << out[i];
+    }
+    std::cout << std::endl;
+}
+
+
+void FSK(std::vector<int>& binaryResult, std::vector<double>& N_values, std::vector<double>& out, double fn1, double fn2, double M, double Tb, double fs, double B) {
+    double t;
+    for (int n = 0; n < B; n++) {
+        if (binaryResult[n] == 0) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(sin(2 * PI * fn1 * t));
+            }
+        }
+        if (binaryResult[n] == 1) {
+            for (int m = 0; m < M; m++) {
+                t = n * Tb + m / fs;
+                N_values.push_back(t);
+                out.push_back(sin(2 * PI * fn2 * t));
+            }
+        }
+    }
+
+
+
+}
+void FSK_d(std::vector<int>& binaryResult, std::vector<double>& N_values, std::vector<double>& out, double A1, double A2, double fn1, double fn2, double M, double Tb, double fs, double B, double N, std::vector<double>& maxs, std::vector<double>& x1, std::vector<double>& x2, std::vector<double>& x3, double A, double fn) {
+    modulacja_FSK(out, N, A1, fn1, fn2, fs, x1, x2);
+    plt::figure();
+    plt::plot(N_values, out, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("asksss_a");
+    plt::show();
+    //calka_FSK(x1, x2, x3, N, A1, fn, fs, M);
+    plt::figure();
+    plt::plot(N_values, x1, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("ask_a");
+    plt::show();
+    plt::figure();
+    plt::plot(N_values, x2, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("ask_a");
+    plt::show();
+    calka_FSK(x1, x2, out, N, A, fn, fs, M);
+    ct(out, N, M, maxs);
+    plt::figure();
+    plt::plot(N_values, out, "b-");
+    plt::xlabel("czas");
+    plt::ylabel("z(a)");
+    plt::title("ask_a");
+    plt::show();
+    cts_psk(out, N, M, maxs, B, Tb, N_values, fs);
+    std::cout << "Wektor po demodulacji ";
+    for (int i = 0; i < maxs.size();i++) {
+        std::cout << out[i];
+    }
+    std::cout << std::endl;
+
+}
+
+
+void hamming_block(const std::vector<int>& binaryResult, std::vector<int>& hamming) {
+    int x3, x5, x6, x7;
+    x3 = binaryResult[0];
+    x5 = binaryResult[1];
+    x6 = binaryResult[2];
+    x7 = binaryResult[3];
+
+    int index = 0;
+    for (int i = 0; i < 7; i++) {
+        if (((i + 1) & ((i + 1) - 1)) == 0) {
+            if (i == 0)
+                hamming[i] = x3 ^ x5 ^ x7;
+            else if (i == 1)
+                hamming[i] = x3 ^ x6 ^ x7;
+            else if (i == 3)
+                hamming[i] = x5 ^ x6 ^ x7;
+        }
+        else {
+            hamming[i] = binaryResult[index];
+            index++;
+        }
+    }
+}
+
+void hamming_encode(const std::vector<int>& input, std::vector<int>& encoded, double B) {
+    int n = input.size();
+    for (int i = 0; i < n; i += 4) {
+        std::vector<int> binaryResult(input.begin() + i, input.begin() + i + 4);
+        std::vector<int> hamming(7);
+        hamming_block(binaryResult, hamming);
+        encoded.insert(encoded.end(), hamming.begin(), hamming.end());
+    }
+    std::cout << "Zakodowany wektor:    ";
+    for (int i = 0; i < B; i++) {
+        std::cout << encoded[i];
+    }
+    std::cout << "\n" << std::endl;
+}
+
+void hamming_decode_block(std::vector<int>& hamming) {
+    int suma;
+    do {
+        int x1 = hamming[0] ^ hamming[2] ^ hamming[4] ^ hamming[6];
+        int x2 = hamming[1] ^ hamming[2] ^ hamming[5] ^ hamming[6];
+        int x4 = hamming[3] ^ hamming[4] ^ hamming[5] ^ hamming[6];
+
+        int xs[3] = { x1, x2, x4 };
+        suma = 0;
+        for (int i = 0; i < 3; i++) {
+            suma += xs[i] * std::pow(2, i);
+        }
+
+        if (suma != 0) {
+
+            hamming[suma - 1] = !hamming[suma - 1];
+        }
+    } while (suma != 0);
+}
+
+void hamming_decode(std::vector<double>& encoded, std::vector<int>& decoded, double h) {
+    int n = encoded.size();
+    for (int i = 0; i < n; i += 7) {
+        std::vector<int> hamming(encoded.begin() + i, encoded.begin() + i + 7);
+        hamming_decode_block(hamming);
+        decoded.insert(decoded.end(), { hamming[2], hamming[4], hamming[5], hamming[6] });
+    }
+    std::cout << "Wektor wyjsciowy:     ";
+    for (int i = 0; i < h; i++) {
+        std::cout << decoded[i];
+    }
+}
+
+
+
+int main() {
+    srand(time(0));
+    const static int q = 15;
+    const static float c1 = (1 << q) - 1;
+    const static float c2 = ((int)(c1 / 3)) + 1;
+    const static float c3 = 1.f / c1;
+
+    /* random number in range 0 - 1 not including 1 */
+
+    double B = 77;
+    double h = 44;
+
+    std::vector<int> hamming_w(7);
+    std::vector<double> N_values;
+    std::vector<double> out;
+    std::vector<double> maxs;
+    std::vector<double> BERS;
+    double Tc = 77.0;
+    double fs = 200;
+    double N = Tc * fs;
+    double W = 2;
+    double A1 = 1;
+    double A2 = 0.5;
+    double A = 1;
+    std::vector<double> x1;
+    std::vector<double> x2;
+    std::vector<double> x3;
+    double Tb = Tc / B;
+    double M = Tb * fs;
+    double fn = W * (1 / Tb);
+    double fn1 = W + 1 / Tb;
+    double fn2 = W + 3 / Tb;
+
+    float random = 0.f;
+
+    /* the white noise */
+    float noise = 0.f;
+
+
+    std::string input = "nikolakovacaadwer";
+    Matrix<int, 11, 4> P;
+    //std::vector<int> binaryResult2 = asciiToBinary(input);
+    std::vector<int> binaryResult = { 1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1 };
+    std::vector<int> encoded;
+    std::vector<int> decoded;
+    std::vector<double> szum;
+    std::vector<double> out_m;
+    std::vector<double> out_m2;
+    std::vector<double> alphas = { 0.213, 0.424, 0.567, 0.743, 0.984 };
+    double x;
+    std::cout << "Hamming (7,4)  \n" << std::endl;
+    std::cout << "Wektor wejsciowy:     ";
+    for (int i = 0; i < h; i++) {
+        std::cout << binaryResult[i];
+    }
+    std::cout << std::endl;
+
+
+
+
+    hamming_encode(binaryResult, encoded, B);
+    //PSK(encoded, N_values, out, fn, M, Tb, fs, B);
+    ASK(encoded, N_values, out, A1, A2, fn, M, Tb, fs, B);
+    //FSK(encoded, N_values, out, fn1,fn2, M, Tb, fs, B);
+
+    double alpha = 0.99000;
+
+    
+
+    for (int i = 0; i < N; i++)
+    {
+        random = ((float)rand() / (float)(RAND_MAX + 1));
+        szum.push_back((2.f * ((random * c2) + (random * c2) + (random * c2)) - 3.f * (c2 - 1.f)) * c3);
+        x = out[i];
+        out_m.push_back(x + alpha * szum[i]);
+
+    }
+
+
+    /*out_m.clear();
+    double beta = 9;
+    double e;
+    for (int i = 0; i < N; i++)
+    {
+        e = exp(-1 * beta * i);
+        x = out[i];
+        out_m.push_back(x * e);
+
+    }
+    */
+
+
+
+    //PSK_d(encoded, N_values, out_m, A1, A2, fn, M, Tb, fs, B, N, maxs);
+    ASK_d(encoded, N_values, out_m, A1, A2, fn, M, Tb, fs, B, N, maxs);
+    //FSK_d(encoded, N_values, out_m, A1, A2, fn1,fn2, M, Tb, fs, B, N, maxs,x1,x2,x3,A,fn);
+    hamming_decode(out_m, decoded, h);
+    double BER;
+    double E = 0;
+    for (int i = 0; i < 44; i++) {
+        if (binaryResult[i] = !decoded[i]) {
+            E++;
+        }
+    }
+    std::cout << "\n";
+    BER = E / 44 * 100;
+
+    std::cout << "BER: " << BER << "%";
+    return 0;
+}
+
+
+
+
+
