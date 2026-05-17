@@ -1,4 +1,3 @@
-## Wybrany język programowania: C++
 
 ## Transmisja danych – laboratoria
 
