@@ -1,5 +1,5 @@
 
-## Transmisja danych – laboratoria
+## Transmisja danych
 
 To repozytorium zawiera zestaw laboratoriów z przedmiotu **Transmisja danych**.
 
