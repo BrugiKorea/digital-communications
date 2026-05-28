@@ -1,13 +1,12 @@
+## Digital communication
 
-## Transmisja danych
+This repository contains a set of laboratory assignments for the **Digital communication** course.
 
-To repozytorium zawiera zestaw laboratoriów z przedmiotu **Transmisja danych**.
-
-Zakres obejmuje zagadnienia związane z:
-- generowaniem i analizą sygnałów cyfrowych,
-- modulacjami analogowymi i cyfrowymi (ASK, PSK, FSK),
-- kluczowaniem sygnałów binarnych,
-- analizą widm w dziedzinie częstotliwości,
-- kodowaniem i dekodowaniem (kody Hamminga),
-- symulacją kompletnego systemu transmisyjnego,
-- wpływem zakłóceń kanału na jakość transmisji (BER).
+The scope covers topics related to:
+- generation and analysis of digital signals,
+- analog and digital modulations (ASK, PSK, FSK),
+- binary signal shift keying,
+- spectrum analysis in the frequency domain,
+- encoding and decoding (Hamming codes),
+- simulation of a complete transmission system,
+- the impact of channel interference on transmission quality (BER).
